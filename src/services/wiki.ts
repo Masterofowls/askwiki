@@ -1,6 +1,8 @@
 // Wikipedia / MediaWiki API service
 // Supports any wiki running the MediaWiki API (wikipedia.org, wikimedia.org, etc.)
 
+import { cachePage, getCachedPage } from "./pageCache"
+
 export interface WikiSearchResult {
   title: string
   snippet: string
@@ -108,6 +110,10 @@ export async function fetchWikiPage(
   lang = "en",
   baseUrl = `https://${lang}.wikipedia.org`,
 ): Promise<WikiPageData> {
+  // Try cache first
+  const cached = getCachedPage(lang, title)
+  if (cached) return cached
+
   // First, get the summary via REST API for quick metadata
   const restUrl = `${baseUrl}/api/rest_v1/page/summary/${encodeURIComponent(title)}`
   const restRes = await fetch(restUrl)
@@ -149,7 +155,7 @@ export async function fetchWikiPage(
     .map((l: Record<string, unknown>) => l["*"] as string)
     .filter(Boolean)
 
-  return {
+  const result: WikiPageData = {
     title: summaryMeta?.title ?? page.title ?? title,
     displayTitle: summaryMeta?.title ?? page.title ?? title,
     summary: summaryMeta?.extract ?? "",
@@ -159,6 +165,11 @@ export async function fetchWikiPage(
     links: links.slice(0, 50),
     wikiUrl: `${baseUrl}/wiki/${encodeURIComponent(title).replace(/%20/g, "_")}`,
   }
+
+  // Store in local cache for future visits
+  cachePage(lang, title, result)
+
+  return result
 }
 
 /**

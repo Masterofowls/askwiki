@@ -210,10 +210,82 @@ export function formatWikiContent(rawHtml: string): FormattedContent {
     '<blockquote class="wiki-blockquote">',
   )
 
-  // 15. Wrap the content in a wiki-content container
+  // 15. Remove bottom reference/notes sections and other "useless" sections
+  const sectionsToRemove = [
+    "References",
+    "Notes",
+    "Bibliography",
+    "Further reading",
+    "External links",
+    "Navigation",
+    "Sources",
+    "Citations",
+    "Footnotes",
+    "Explanatory notes",
+    "Notes and references",
+    "References and further reading",
+  ]
+  html = stripSections(html, sectionsToRemove)
+
+  // 16. Remove Wikipedia edit buttons, annotation markers, and metadata badges
+  html = html
+    // Edit section links (by class)
+    .replace(/<span[^>]*class="mw-editsection[^"]*"[^>]*>.*?<\/span>/gi, "")
+    // Edit section links (by <a> with edit action)
+    .replace(/<a[^>]*href="[^"]*\b(action=edit|veaction=edit)[^"]*"[^>]*>.*?<\/a>/gi, "")
+    // Edit links in visual mode
+    .replace(/<a[^>]*class="mw-editsection-visualeditor"[^>]*>.*?<\/a>/gi, "")
+    // Hatnotes / short description banners
+    .replace(/<div[^>]*class="[^"]*\b(?:hatnote|dablink|rellink)\b[^"]*"[^>]*>[\s\S]*?<\/div>/gi, "")
+    // Metadata boxes (navbar, noprint, sister projects)
+    .replace(
+      /<(?:div|table|tr)[^>]*class="[^"]*\b(?:noprint|metadata|sistertable|mbox-small|navbox|navbar|reflist|refbegin)\b[^"]*"[^>]*>[\s\S]*?<\/(?:div|table|tr)>/gi,
+      "",
+    )
+    // Coordinate links
+    .replace(/<span[^>]*class="geo[^"]*"[^>]*>.*?<\/span>/gi, "")
+    // Page status indicators (good article, featured etc)
+    .replace(/<div[^>]*id="mw-indicator-sd-"[^>]*>[\s\S]*?<\/div>/gi, "")
+    // All indicators generally (bottom badges)
+    .replace(/<li[^>]*id="[^"]*pagehistory"[^>]*>[\s\S]*?<\/li>/gi, "")
+
+  // 17. Remove empty anchor elements (annotations / backlinks for refs)
+  html = html.replace(/<a[^>]*class="mw-headline-anchor"[^>]*><\/a>/gi, "")
+  // Remove reference backlink markers (<sup> with class reference)
+  html = html.replace(
+    /<sup[^>]*class="reference"[^>]*>[\s\S]*?<\/sup>/gi,
+    "",
+  )
+  // Remove cite error / cite notice blocks
+  html = html.replace(
+    /<(?:div|span|p)[^>]*class="[^"]*\b(?:cite-error|cite-notice|mw-ext-cite-error)\b[^"]*"[^>]*>[\s\S]*?<\/(?:div|span|p)>/gi,
+    "",
+  )
+
+  // 18. Wrap the content in a wiki-content container
   html = `<div class="wiki-content">${html}</div>`
 
   return { html, latexExpressions, images, externalUrls, toc }
+}
+
+/**
+ * Remove entire sections whose heading matches any name in `namesToRemove`.
+ * A section is: <h2>…heading…</h2> followed by everything until the next <h2>
+ * (or end of content).
+ */
+function stripSections(html: string, namesToRemove: string[]): string {
+  const pattern = namesToRemove
+    .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|")
+
+  if (!pattern) return html
+
+  const regex = new RegExp(
+    `<h[2-4][^>]*>\\s*<span[^>]*id="[^"]*"?[^"]*"?\\s*><\\/span>\\s*<span[^>]*class="mw-headline"[^>]*>(?:${pattern})<\\/span>\\s*<\\/h[2-4]>[\\s\\S]*?(?=<h[2-4]\\b|$)`,
+    "gi",
+  )
+
+  return html.replace(regex, "")
 }
 
 

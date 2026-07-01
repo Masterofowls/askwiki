@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useParams, useSearchParams, Link } from "react-router-dom"
 import { fetchWikiPage, parseWikiUrl } from "@/services/wiki"
 import { formatWikiContent } from "@/services/contentFormatter"
+import { htmlToMarkdown, downloadMarkdown, copyToClipboard, htmlToPlainText } from "@/services/markdownExport"
 import type { WikiPageData } from "@/services/wiki"
 import { useAuth } from "@/hooks/AuthContext"
 import { useBookmarks } from "@/hooks/useBookmarks"
@@ -26,6 +27,27 @@ export default function ViewerPage() {
   const bookmarked = slug ? isBookmarked(slug) : false
   const reading = useReadingView()
   const urlPreview = useUrlPreview()
+  const [tooltip, setTooltip] = useState<string | null>(null)
+
+  const showTooltip = useCallback((msg: string) => {
+    setTooltip(msg)
+    setTimeout(() => setTooltip(null), 2000)
+  }, [])
+
+  const handleCopy = useCallback(async () => {
+    if (!contentRef.current) return
+    const text = htmlToPlainText(contentRef.current.innerHTML)
+    const ok = await copyToClipboard(text)
+    showTooltip(ok ? "Copied to clipboard!" : "Copy failed")
+  }, [showTooltip])
+
+  const handleExportMarkdown = useCallback(() => {
+    if (!contentRef.current || !page) return
+    const md = htmlToMarkdown(contentRef.current.innerHTML)
+    const filename = `${page.title.replace(/[^a-zA-Z0-9_-]/g, "_")}.md`
+    downloadMarkdown(md, filename)
+    showTooltip("Markdown downloaded!")
+  }, [page, showTooltip])
 
   const fetchPage = useCallback(async () => {
     if (!slug) return
@@ -166,7 +188,7 @@ export default function ViewerPage() {
 
   return (
     <article className="viewer-page">
-      {/* Reading View Toolbar */}
+      {/* Toolbar */}
       <div
         style={{
           display: "flex",
@@ -217,6 +239,29 @@ export default function ViewerPage() {
             </button>
           </>
         )}
+
+        <span className="toolbar-separator" />
+
+        {/* Copy page to clipboard */}
+        <button
+          className="toolbar-action-btn"
+          onClick={handleCopy}
+          title="Copy full page text to clipboard"
+        >
+          📋 Copy
+        </button>
+
+        {/* Export as Markdown */}
+        <button
+          className="toolbar-action-btn"
+          onClick={handleExportMarkdown}
+          title="Download as Markdown file"
+        >
+          ⬇️ .md
+        </button>
+
+        {/* Toast / tooltip */}
+        {tooltip && <span className="toolbar-toast">{tooltip}</span>}
       </div>
 
       {/* Breadcrumb */}
