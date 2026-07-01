@@ -229,12 +229,16 @@ export function formatWikiContent(rawHtml: string): FormattedContent {
 
   // 16. Remove Wikipedia edit buttons, annotation markers, and metadata badges
   html = html
-    // Edit section links (by class)
-    .replace(/<span[^>]*class="mw-editsection[^"]*"[^>]*>.*?<\/span>/gi, "")
-    // Edit section links (by <a> with edit action)
-    .replace(/<a[^>]*href="[^"]*\b(action=edit|veaction=edit)[^"]*"[^>]*>.*?<\/a>/gi, "")
-    // Edit links in visual mode
-    .replace(/<a[^>]*class="mw-editsection-visualeditor"[^>]*>.*?<\/a>/gi, "")
+    // Edit section links (by class) — multiline-safe
+    .replace(/<span[^>]*class="mw-editsection[^"]*"[^>]*>[\s\S]*?<\/span>/gi, "")
+    // Edit section links (by <a> with edit action in href) — multiline-safe
+    .replace(/<a[^>]*href="[^"]*\b(?:action=edit|veaction=edit)[^"]*"[^>]*>[\s\S]*?<\/a>/gi, "")
+    // Edit links in visual mode — multiline-safe
+    .replace(/<a[^>]*class="mw-editsection-visualeditor"[^>]*>[\s\S]*?<\/a>/gi, "")
+    // Catch-all: any remaining <a> that smells like an edit link
+    .replace(/<a[^>]*\b(?:edit|veaction)[^>]*>[\s\S]*?<\/a>/gi, "")
+    // Strip any plain-text URLs containing action=edit or veaction=edit
+    .replace(/https?:\/\/[^\s<>"']*\b(?:action=edit|veaction=edit)[^\s<>"']*/gi, "")
     // Hatnotes / short description banners
     .replace(/<div[^>]*class="[^"]*\b(?:hatnote|dablink|rellink)\b[^"]*"[^>]*>[\s\S]*?<\/div>/gi, "")
     // Metadata boxes (navbar, noprint, sister projects)
