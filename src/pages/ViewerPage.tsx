@@ -5,6 +5,8 @@ import { formatWikiContent } from "@/services/contentFormatter"
 import type { WikiPageData } from "@/services/wiki"
 import { useAuth } from "@/hooks/AuthContext"
 import { useBookmarks } from "@/hooks/useBookmarks"
+import { useReadingView } from "@/components/ReadingView"
+import { useUrlPreview, UrlPreviewCard } from "@/components/UrlPreview"
 import katex from "katex"
 import "katex/dist/katex.min.css"
 
@@ -22,6 +24,8 @@ export default function ViewerPage() {
   const { session } = useAuth()
   const { isBookmarked, add, remove } = useBookmarks()
   const bookmarked = slug ? isBookmarked(slug) : false
+  const reading = useReadingView()
+  const urlPreview = useUrlPreview()
 
   const fetchPage = useCallback(async () => {
     if (!slug) return
@@ -78,6 +82,21 @@ export default function ViewerPage() {
       }
     })
 
+    // Attach URL preview listeners to wiki links
+    const links = contentRef.current.querySelectorAll("a[href]")
+    links.forEach((link) => {
+      const href = link.getAttribute("href") ?? ""
+      if (!href.startsWith("https://") && !href.startsWith("http://")) return
+
+      link.addEventListener("mouseenter", (e) => {
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+        urlPreview.show(href, rect.left, rect.bottom)
+      })
+      link.addEventListener("mouseleave", () => {
+        urlPreview.hide()
+      })
+    })
+
     renderedRef.current = true
 
     const hash = window.location.hash
@@ -89,11 +108,37 @@ export default function ViewerPage() {
         }
       }, 100)
     }
-  }, [formatted])
+
+    // Cleanup listeners on re-render
+    return () => {
+      links.forEach((link) => {
+        link.removeEventListener("mouseenter", () => {})
+        link.removeEventListener("mouseleave", () => {})
+      })
+    }
+  }, [formatted, urlPreview])
 
   useEffect(() => {
     renderedRef.current = false
   }, [slug])
+
+  // Reading view class on body for theme
+  useEffect(() => {
+    const body = document.body
+    if (reading.enabled && reading.theme === "sepia") {
+      body.classList.add("reading-theme-sepia")
+    } else {
+      body.classList.remove("reading-theme-sepia")
+    }
+    if (reading.enabled && reading.theme === "light") {
+      body.classList.add("reading-theme-light")
+    } else {
+      body.classList.remove("reading-theme-light")
+    }
+    return () => {
+      body.classList.remove("reading-theme-sepia", "reading-theme-light")
+    }
+  }, [reading.enabled, reading.theme])
 
   if (loading) {
     return (
@@ -121,6 +166,59 @@ export default function ViewerPage() {
 
   return (
     <article className="viewer-page">
+      {/* Reading View Toolbar */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          marginBottom: "16px",
+          flexWrap: "wrap",
+        }}
+      >
+        <button
+          className={`reading-view-toggle ${reading.enabled ? "active" : ""}`}
+          onClick={reading.toggle}
+        >
+          {reading.enabled ? "📖 Reading View" : "📄 Reading View"}
+        </button>
+
+        {reading.enabled && (
+          <>
+            <div className="reading-font-controls">
+              <button
+                className="reading-font-btn"
+                onClick={reading.decreaseFont}
+                title="Decrease font size"
+              >
+                A−
+              </button>
+              <span className="reading-font-size-label">
+                {reading.fontSize}%
+              </span>
+              <button
+                className="reading-font-btn"
+                onClick={reading.increaseFont}
+                title="Increase font size"
+              >
+                A+
+              </button>
+            </div>
+            <button
+              className="reading-theme-btn"
+              onClick={reading.cycleTheme}
+              title={`Theme: ${reading.theme}`}
+            >
+              {reading.theme === "dark"
+                ? "🌙"
+                : reading.theme === "sepia"
+                  ? "🟫"
+                  : "☀️"}
+            </button>
+          </>
+        )}
+      </div>
+
       {/* Breadcrumb */}
       <nav className="breadcrumb" aria-label="Breadcrumb">
         <Link to="/">Home</Link>
@@ -194,6 +292,12 @@ export default function ViewerPage() {
       {/* Formatted Wikipedia Content */}
       <div
         ref={contentRef}
+        className="wiki-content"
+        style={
+          reading.enabled
+            ? { fontSize: `${reading.fontSize}%` }
+            : undefined
+        }
         dangerouslySetInnerHTML={{ __html: formatted?.html ?? "" }}
       />
 
@@ -205,6 +309,13 @@ export default function ViewerPage() {
           ))}
         </div>
       )}
+
+      {/* URL Preview card */}
+      <UrlPreviewCard
+        preview={urlPreview.preview}
+        position={urlPreview.position}
+        visible={urlPreview.visible}
+      />
     </article>
   )
 }

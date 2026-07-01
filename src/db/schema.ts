@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, serial } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, serial, integer } from "drizzle-orm/pg-core"
 
 export const bookmarks = pgTable("bookmarks", {
   id: serial("id").primaryKey(),
@@ -8,5 +8,21 @@ export const bookmarks = pgTable("bookmarks", {
   wikiUrl: text("wiki_url"),
   imageUrl: text("image_url"),
   summary: text("summary"),
+  collectionId: integer("collection_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+})
+
+export const bookmarkCollections = pgTable("bookmark_collections", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  name: text("name").notNull(),
+  color: text("color").default("#8b5cf6"),
+  icon: text("icon").default("📁"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+})
+
+export const bookmarkTags = pgTable("bookmark_tags", {
+  id: serial("id").primaryKey(),
+  bookmarkId: integer("bookmark_id").notNull(),
+  tag: text("tag").notNull(),
 })
