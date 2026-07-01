@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
 import SearchBar from "./SearchBar"
 import { auth } from "@/lib/auth"
 import { useReadingView } from "./ReadingView"
+import PwaInstallPrompt from "./PwaInstallPrompt"
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -184,6 +185,9 @@ export default function Layout() {
           </div>
         </div>
       )}
+
+      {/* PWA Install Prompt */}
+      <PwaInstallPrompt />
 
       {/* Bottom Navigation (mobile) */}
       <nav className="bottom-nav">

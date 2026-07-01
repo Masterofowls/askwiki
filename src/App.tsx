@@ -6,6 +6,7 @@ import HomePage from "./pages/HomePage"
 import ViewerPage from "./pages/ViewerPage"
 import SearchPage from "./pages/SearchPage"
 import BookmarksPage from "./pages/BookmarksPage"
+import BookmarksReadingPage from "./pages/BookmarksReadingPage"
 
 function AuthPage() {
   const { path } = useParams()
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/wiki/:slug" element={<ViewerPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/bookmarks" element={<BookmarksPage />} />
+          <Route path="/read/:slug" element={<BookmarksReadingPage />} />
         </Route>
       </Routes>
     </ReadingProvider>

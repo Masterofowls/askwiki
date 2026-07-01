@@ -22,6 +22,7 @@ export interface BookmarkCollection {
   name: string
   color: string
   icon: string
+  position: number
   createdAt: Date
   count: number
 }
@@ -61,7 +62,10 @@ export function useBookmarks() {
         .select()
         .from(bookmarkCollections)
         .where(eq(bookmarkCollections.userId, userId))
-        .orderBy(bookmarkCollections.name)
+        .orderBy(
+          bookmarkCollections.position,
+          bookmarkCollections.name,
+        )
 
       const colsWithCounts: BookmarkCollection[] = []
       for (const col of allCollections) {
@@ -76,6 +80,7 @@ export function useBookmarks() {
           name: col.name,
           color: col.color ?? "#8b5cf6",
           icon: col.icon ?? "📁",
+          position: col.position ?? 0,
           createdAt: col.createdAt,
           count: Number((countResult[0] as { count: number })?.count ?? 0),
         })
@@ -269,6 +274,76 @@ export function useBookmarks() {
     [db, refresh],
   )
 
+  // Rename a collection
+  const renameCollection = useCallback(
+    async (id: number, name: string) => {
+      if (!userId) return
+      const client = await db()
+      await client
+        .update(bookmarkCollections)
+        .set({ name })
+        .where(
+          and(eq(bookmarkCollections.userId, userId), eq(bookmarkCollections.id, id)),
+        )
+      await refresh()
+    },
+    [userId, db, refresh],
+  )
+
+  // Update a collection's color/icon
+  const updateCollection = useCallback(
+    async (id: number, data: { color?: string; icon?: string }) => {
+      if (!userId) return
+      const client = await db()
+      await client
+        .update(bookmarkCollections)
+        .set(data)
+        .where(
+          and(eq(bookmarkCollections.userId, userId), eq(bookmarkCollections.id, id)),
+        )
+      await refresh()
+    },
+    [userId, db, refresh],
+  )
+
+  // Reorder collections (set position for each)
+  const reorderCollection = useCallback(
+    async (orderedIds: number[]) => {
+      if (!userId) return
+      const client = await db()
+      // Update position for each collection sequentially
+      for (let i = 0; i < orderedIds.length; i++) {
+        await client
+          .update(bookmarkCollections)
+          .set({ position: i })
+          .where(
+            and(
+              eq(bookmarkCollections.userId, userId),
+              eq(bookmarkCollections.id, orderedIds[i] as number),
+            ),
+          )
+      }
+      await refresh()
+    },
+    [userId, db, refresh],
+  )
+
+  // Bulk add bookmarks (move multiple to a collection, or tag all)
+  const bulkAdd = useCallback(
+    async (slug: string, data: { collectionId?: number }) => {
+      if (!userId) return
+      const client = await db()
+      await client
+        .update(bookmarks)
+        .set({ collectionId: data.collectionId ?? null })
+        .where(
+          and(eq(bookmarks.userId, userId), eq(bookmarks.slug, slug)),
+        )
+      await refresh()
+    },
+    [userId, db, refresh],
+  )
+
   return {
     items,
     collections,
@@ -281,6 +356,10 @@ export function useBookmarks() {
     refresh,
     createCollection,
     deleteCollection,
+    renameCollection,
+    updateCollection,
+    reorderCollection,
+    bulkAdd,
     addTag,
     removeTag,
   }

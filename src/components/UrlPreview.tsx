@@ -23,55 +23,41 @@ export function useUrlPreview() {
   const fetchPreview = useCallback(async (url: string) => {
     setLoadingPreview(true)
     try {
-      // Try Open Graph via a simple fetch approach
-      const resp = await fetch(
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-        { signal: AbortSignal.timeout(4000) },
-      )
-      const html = await resp.text()
-      const doc = new DOMParser().parseFromString(html, "text/html")
+      const u = new URL(url)
+      const hostname = u.hostname
 
-      const title =
-        doc.querySelector('meta[property="og:title"]')?.getAttribute("content") ??
-        doc.querySelector("title")?.textContent ??
-        url
-      const description =
-        doc.querySelector('meta[property="og:description"]')?.getAttribute("content") ??
-        doc.querySelector('meta[name="description"]')?.getAttribute("content") ??
-        ""
-      const image =
-        doc.querySelector('meta[property="og:image"]')?.getAttribute("content") ??
-        doc.querySelector('meta[name="twitter:image"]')?.getAttribute("content") ??
-        null
-      const siteName =
-        doc.querySelector('meta[property="og:site_name"]')?.getAttribute("content") ??
-        new URL(url).hostname
-      const favicon =
-        doc.querySelector('link[rel="icon"]')?.getAttribute("href") ??
-        doc.querySelector('link[rel="shortcut icon"]')?.getAttribute("href") ??
-        null
+      // For Wikipedia URLs, use the Wikipedia API directly
+      if (hostname === "en.wikipedia.org" || hostname.endsWith(".wikipedia.org")) {
+        const pageTitle = u.pathname.replace("/wiki/", "").replace(/_/g, " ")
+        const apiUrl = `https://${hostname}/w/api.php?action=query&titles=${encodeURIComponent(decodeURIComponent(pageTitle))}&prop=extracts|pageimages|info&exintro&explaintext&exchars=300&pithumbsize=300&format=json&origin=*`
+        const resp = await fetch(apiUrl, { signal: AbortSignal.timeout(4000) })
+        const data = await resp.json()
+        const pages = data.query?.pages as Record<string, { title?: string; extract?: string; thumbnail?: { source?: string } }> | undefined
+        if (pages) {
+          const page = Object.values(pages)[0]
+          if (page?.extract) {
+            setPreview({
+              title: page.title ?? decodeURIComponent(pageTitle),
+              description: page.extract.slice(0, 300).replace(/\n/g, " "),
+              image: page.thumbnail?.source ?? null,
+              siteName: "Wikipedia",
+              favicon: `https://${hostname}/favicon.ico`,
+            })
+            return
+          }
+        }
+      }
 
+      // Fallback: show hostname info (avoids CORS proxy entirely)
       setPreview({
-        title,
-        description,
-        image: image ? makeAbsolute(url, image) : null,
-        siteName,
-        favicon: favicon ? makeAbsolute(url, favicon) : null,
+        title: decodeURIComponent(u.pathname.split("/").filter(Boolean).pop() ?? u.hostname),
+        description: u.href,
+        image: null,
+        siteName: hostname,
+        favicon: `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`,
       })
     } catch {
-      // Fallback: use URL as title
-      try {
-        const u = new URL(url)
-        setPreview({
-          title: u.hostname + u.pathname,
-          description: "",
-          image: null,
-          siteName: u.hostname,
-          favicon: `https://${u.hostname}/favicon.ico`,
-        })
-      } catch {
-        setPreview(null)
-      }
+      setPreview(null)
     } finally {
       setLoadingPreview(false)
     }
@@ -95,14 +81,6 @@ export function useUrlPreview() {
   }, [])
 
   return { preview, position, visible, loading: loadingPreview, show, hide }
-}
-
-function makeAbsolute(base: string, relative: string): string {
-  try {
-    return new URL(relative, base).href
-  } catch {
-    return relative
-  }
 }
 
 export function UrlPreviewCard({
