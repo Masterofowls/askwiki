@@ -46,3 +46,5 @@ Thumbs.db
 .vercel
 .env*
 /.playwright-cli
+/.omo
+/.omo/run-continuation

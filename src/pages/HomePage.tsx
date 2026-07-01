@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { searchWiki, parseWikiUrl } from "@/services/wiki"
+import { usePageHistory } from "@/hooks/usePageHistory"
 
 export default function HomePage() {
   const [urlInput, setUrlInput] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
+  const { entries: historyEntries, clear: clearHistory } = usePageHistory()
   const [results, setResults] = useState<Array<{ title: string; snippet: string; url: string; pageId: number }>>()
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -158,6 +160,35 @@ export default function HomePage() {
                 <div className="search-result-body">
                   <h2 className="search-result-title">{result.title}</h2>
                   <p className="search-result-summary">{result.snippet}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Recent Pages */}
+      {historyEntries.length > 0 && (
+        <section className="home-recent">
+          <div className="home-recent-header">
+            <h2 className="home-section-title">Recently Viewed</h2>
+            <button className="home-recent-clear" onClick={clearHistory}>
+              Clear
+            </button>
+          </div>
+          <div className="home-recent-list">
+            {historyEntries.slice(0, 10).map((entry) => (
+              <Link
+                key={`${entry.lang}:${entry.slug}`}
+                to={`/wiki/${encodeURIComponent(entry.slug)}${entry.lang !== "en" ? `?lang=${entry.lang}` : ""}`}
+                className="home-recent-link"
+              >
+                <span className="home-recent-icon">📄</span>
+                <div className="home-recent-info">
+                  <span className="home-recent-title">{entry.title}</span>
+                  <span className="home-recent-meta">
+                    {entry.lang}.wikipedia.org · {new Date(entry.visitedAt).toLocaleDateString()}
+                  </span>
                 </div>
               </Link>
             ))}

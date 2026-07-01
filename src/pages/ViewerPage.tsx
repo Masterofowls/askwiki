@@ -6,8 +6,10 @@ import { htmlToMarkdown, downloadMarkdown, copyToClipboard, htmlToPlainText } fr
 import type { WikiPageData } from "@/services/wiki"
 import { useAuth } from "@/hooks/AuthContext"
 import { useBookmarks } from "@/hooks/useBookmarks"
+import { usePageHistory } from "@/hooks/usePageHistory"
 import { useReadingView } from "@/components/ReadingView"
 import { useUrlPreview, UrlPreviewCard } from "@/components/UrlPreview"
+import Summarizer from "@/components/Summarizer"
 import katex from "katex"
 import "katex/dist/katex.min.css"
 
@@ -27,6 +29,7 @@ export default function ViewerPage() {
   const bookmarked = slug ? isBookmarked(slug) : false
   const reading = useReadingView()
   const urlPreview = useUrlPreview()
+  const { record: recordHistory } = usePageHistory()
   const [tooltip, setTooltip] = useState<string | null>(null)
 
   const showTooltip = useCallback((msg: string) => {
@@ -65,6 +68,7 @@ export default function ViewerPage() {
 
       const pageData = await fetchWikiPage(title, lang, baseUrl)
       setPage(pageData)
+      recordHistory(slug!, pageData.title, lang, pageData.wikiUrl)
 
       const formattedContent = formatWikiContent(pageData.html)
       setFormatted(formattedContent)
@@ -259,6 +263,14 @@ export default function ViewerPage() {
         >
           ⬇️ .md
         </button>
+
+        <span className="toolbar-separator" />
+
+        {/* AI Summary */}
+        <Summarizer
+          title={page.displayTitle}
+          pageContent={contentRef.current ? htmlToPlainText(contentRef.current.innerHTML) : ""}
+        />
 
         {/* Toast / tooltip */}
         {tooltip && <span className="toolbar-toast">{tooltip}</span>}
