@@ -1,0 +1,210 @@
+import { useState, useEffect, useRef, useCallback } from "react"
+import { useParams, useSearchParams, Link } from "react-router-dom"
+import { fetchWikiPage, parseWikiUrl } from "@/services/wiki"
+import { formatWikiContent } from "@/services/contentFormatter"
+import type { WikiPageData } from "@/services/wiki"
+import { useAuth } from "@/hooks/AuthContext"
+import { useBookmarks } from "@/hooks/useBookmarks"
+import katex from "katex"
+import "katex/dist/katex.min.css"
+
+export default function ViewerPage() {
+  const { slug } = useParams<{ slug: string }>()
+  const [searchParams] = useSearchParams()
+  const lang = searchParams.get("lang") ?? "en"
+
+  const [page, setPage] = useState<WikiPageData | null>(null)
+  const [formatted, setFormatted] = useState<ReturnType<typeof formatWikiContent> | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const renderedRef = useRef(false)
+  const { session } = useAuth()
+  const { isBookmarked, add, remove } = useBookmarks()
+  const bookmarked = slug ? isBookmarked(slug) : false
+
+  const fetchPage = useCallback(async () => {
+    if (!slug) return
+
+    setLoading(true)
+    setError(null)
+    setPage(null)
+    setFormatted(null)
+
+    try {
+      const title = decodeURIComponent(slug).replace(/_/g, " ")
+      const baseUrl = parseWikiUrl(
+        `https://${lang}.wikipedia.org/wiki/${slug}`,
+      ).baseUrl
+
+      const pageData = await fetchWikiPage(title, lang, baseUrl)
+      setPage(pageData)
+
+      const formattedContent = formatWikiContent(pageData.html)
+      setFormatted(formattedContent)
+    } catch (err) {
+      console.error("Failed to fetch page:", err)
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load page. Please check the URL and try again.",
+      )
+    } finally {
+      setLoading(false)
+    }
+  }, [slug, lang])
+
+  useEffect(() => {
+    fetchPage()
+  }, [fetchPage])
+
+  useEffect(() => {
+    if (!formatted || !contentRef.current || renderedRef.current) return
+
+    const latexSpans = contentRef.current.querySelectorAll<HTMLSpanElement>(
+      "span.wiki-latex[data-latex-index]",
+    )
+    latexSpans.forEach((span) => {
+      const idx = Number.parseInt(span.dataset.latexIndex ?? "", 10)
+      const expr = formatted.latexExpressions[idx]
+      if (!expr) return
+      try {
+        katex.render(expr.raw, span, {
+          displayMode: expr.display,
+          throwOnError: false,
+        })
+      } catch {
+        span.textContent = expr.raw
+      }
+    })
+
+    renderedRef.current = true
+
+    const hash = window.location.hash
+    if (hash) {
+      setTimeout(() => {
+        const el = document.getElementById(hash.slice(1))
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+      }, 100)
+    }
+  }, [formatted])
+
+  useEffect(() => {
+    renderedRef.current = false
+  }, [slug])
+
+  if (loading) {
+    return (
+      <div className="viewer-loading">
+        <div className="loading-spinner" />
+        <p className="loading-text">Fetching page from Wikipedia...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="viewer-error">
+        <div className="viewer-error-icon">📄</div>
+        <h2 className="viewer-error-title">Failed to Load Page</h2>
+        <p className="viewer-error-message">{error}</p>
+        <Link to="/" className="action-button">
+          Back to Home
+        </Link>
+      </div>
+    )
+  }
+
+  if (!page) return null
+
+  return (
+    <article className="viewer-page">
+      {/* Breadcrumb */}
+      <nav className="breadcrumb" aria-label="Breadcrumb">
+        <Link to="/">Home</Link>
+        <span className="breadcrumb-separator">/</span>
+        <span className="breadcrumb-current">{page.displayTitle}</span>
+      </nav>
+
+      {/* Page Header */}
+      <header className="viewer-header">
+        <h1 className="viewer-title">{page.displayTitle}</h1>
+        {session?.user && (
+          <button
+            className={`bookmark-btn ${bookmarked ? "bookmarked" : ""}`}
+            onClick={() => {
+              if (bookmarked) {
+                remove(slug!)
+              } else {
+                add({
+                  slug: slug!,
+                  title: page.displayTitle,
+                  wikiUrl: page.wikiUrl,
+                  ...(page.imageUrl ? { imageUrl: page.imageUrl } : {}),
+                  ...(page.summary ? { summary: page.summary } : {}),
+                })
+              }
+            }}
+            title={bookmarked ? "Remove bookmark" : "Add bookmark"}
+          >
+            {bookmarked ? "★" : "☆"}
+          </button>
+        )}
+        <div className="viewer-meta">
+          {page.categories.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+              {page.categories.slice(0, 8).map((cat) => (
+                <span key={cat} className="tag">
+                  {cat}
+                </span>
+              ))}
+            </div>
+          )}
+          <a
+            href={page.wikiUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="viewer-wiki-link"
+          >
+            View on Wikipedia ↗
+          </a>
+        </div>
+      </header>
+
+      {/* Summary */}
+      {page.summary && (
+        <div className="viewer-summary">{page.summary}</div>
+      )}
+
+      {/* Hero Image */}
+      {page.imageUrl && (
+        <figure className="wiki-thumb" style={{ marginBottom: "24px" }}>
+          <div className="wiki-thumb-inner" style={{ display: "block" }}>
+            <img
+              src={page.imageUrl}
+              alt={page.displayTitle}
+              style={{ width: "100%", maxHeight: "400px", objectFit: "cover" }}
+            />
+          </div>
+        </figure>
+      )}
+
+      {/* Formatted Wikipedia Content */}
+      <div
+        ref={contentRef}
+        dangerouslySetInnerHTML={{ __html: formatted?.html ?? "" }}
+      />
+
+      {/* Placeholder for LaTeX rendering - will use KaTeX */}
+      {formatted && formatted.latexExpressions.length > 0 && (
+        <div className="latex-placeholder" style={{ display: "none" }}>
+          {formatted.latexExpressions.map((expr, i) => (
+            <span key={i} data-latex={expr.raw} data-display={expr.display} />
+          ))}
+        </div>
+      )}
+    </article>
+  )
+}

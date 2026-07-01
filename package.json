@@ -1,22 +1,12 @@
 {
-  "name": "reusable-ts",
-  "version": "0.1.0",
-  "description": "Full-featured, reusable TypeScript template with testing, linting, and build tooling",
+  "name": "askwiki",
+  "version": "1.0.0",
+  "description": "AskWiki - A modern Wikipedia clone with dark theme and advanced search",
   "type": "module",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "default": "./dist/index.js"
-    }
-  },
-  "files": ["dist", "!dist/**/*.test.*", "!dist/**/__tests__/**"],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "dev": "tsc --watch -p tsconfig.build.json",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "clean": "node -e \"const fs=require('fs');['dist','coverage','node_modules/.cache'].forEach(d=>{try{fs.rmSync(d,{recursive:true,force:true})}catch(e){}})\"",
     "type-check": "tsc --noEmit",
     "lint": "biome check --write .",
@@ -44,7 +34,11 @@
     "env:pull": "dotenvx pull",
     "env:push": "dotenvx push"
   },
-  "keywords": ["typescript", "template", "reusable"],
+  "keywords": [
+    "typescript",
+    "template",
+    "reusable"
+  ],
   "license": "MIT",
   "engines": {
     "node": ">=20.0.0"
@@ -56,6 +50,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.1",
     "@types/jest": "^29.5.14",
+    "@types/katex": "^0.16.8",
     "@types/node": "^22.12.0",
     "@types/react": "^18.3.16",
     "@types/react-dom": "^18.3.5",
@@ -75,8 +70,14 @@
     "vite": "^6.0.11"
   },
   "dependencies": {
+    "@neondatabase/auth-ui": "^0.2.1-beta",
+    "@neondatabase/neon-js": "^0.6.2-beta",
+    "@neondatabase/serverless": "^1.1.0",
+    "drizzle-orm": "^0.45.2",
+    "katex": "^0.17.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.4",
     "zod": "^4.4.3"
   }
 }
