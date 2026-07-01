@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+lib/
+
+# Test coverage
+coverage/
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Cache
+.eslintcache
+.stylelintcache
+.tsbuildinfo
+node_modules/.cache/
+
+# Playwright
+playwright-report/
+test-results/
+
+# OS
+Thumbs.db
+/node_modules
+/dist

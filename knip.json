@@ -1,0 +1,32 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "project": ["src/**/*.ts"],
+  "ignoreDependencies": [
+    "react",
+    "react-dom",
+    "@types/react",
+    "@types/react-dom",
+    "@testing-library/react",
+    "dotenv",
+    "identity-obj-proxy",
+    "jsdom"
+  ],
+  "ignoreBinaries": [],
+  "ignore": [],
+  "rules": {
+    "files": "error",
+    "dependencies": "warn",
+    "devDependencies": "warn",
+    "unlisted": "warn",
+    "exports": "warn",
+    "types": "warn",
+    "enumMembers": "warn",
+    "nsExports": "off",
+    "nsTypes": "off",
+    "duplicates": "error"
+  },
+  "ignoreExportsUsedInFile": {
+    "interface": false,
+    "type": true
+  }
+}

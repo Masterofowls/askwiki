@@ -1,0 +1,89 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "organizeImports": {
+    "enabled": true
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "recommended": true,
+        "noUnusedVariables": "error",
+        "useExhaustiveDependencies": "warn",
+        "noUnusedImports": "error",
+        "noConstructorReturn": "error",
+        "noInvalidBuiltinInstantiation": "error"
+      },
+      "style": {
+        "recommended": true,
+        "noNonNullAssertion": "warn",
+        "useConst": "error",
+        "useTemplate": "error",
+        "noParameterAssign": "error",
+        "useDefaultParameterLast": "warn",
+        "useConsistentArrayType": "warn"
+      },
+      "suspicious": {
+        "recommended": true,
+        "noExplicitAny": "warn",
+        "noConsoleLog": "warn",
+        "noEmptyBlockStatements": "warn",
+        "noDoubleEquals": "error",
+        "noRedundantUseStrict": "error"
+      },
+      "complexity": {
+        "recommended": true,
+        "noBannedTypes": "error",
+        "noForEach": "off",
+        "noStaticOnlyClass": "error",
+        "noUselessConstructor": "error",
+        "noUselessLoneBlockStatements": "error",
+        "useSimplifiedLogicExpression": "warn"
+      },
+      "performance": {
+        "recommended": true,
+        "noDelete": "warn"
+      }
+    },
+    "ignore": ["dist", "coverage", "node_modules"]
+  },
+  "overrides": [
+    {
+      "include": ["scripts/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsoleLog": "off"
+          }
+        }
+      }
+    }
+  ],
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "asNeeded",
+      "trailingCommas": "all",
+      "arrowParentheses": "always"
+    }
+  },
+  "json": {
+    "formatter": {
+      "trailingCommas": "none"
+    }
+  },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true,
+    "defaultBranch": "main"
+  }
+}
