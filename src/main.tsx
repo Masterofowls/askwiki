@@ -8,13 +8,6 @@ import { auth } from "./lib/auth"
 import App from "./App"
 import "./styles/global.css"
 
-// Silence the Chrome deprecation warning for the deprecated
-// `beforeinstallprompt` event. Until the install prompt API
-// stabilises, a no-op listener prevents the console warning.
-globalThis.addEventListener?.("beforeinstallprompt", (e) => {
-  e.preventDefault()
-})
-
 // AuthUIProvider expects Link with href prop; react-router-dom uses "to".
 // This wrapper bridges the two APIs.
 function AuthLink({ href, className, children }: { href: string; className?: string; children: ReactNode }) {

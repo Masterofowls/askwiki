@@ -8,6 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      cleanupOutdatedCaches: true,
       includeAssets: ["vite.svg"],
       manifest: {
         name: "AskWiki",
